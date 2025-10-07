@@ -1,0 +1,11 @@
+Rwanda Quantum Agricultural Intelligence Platform
+Copyright 2025 Quantum Agriculture Innovators
+
+This product includes software developed by:
+- React (https://reactjs.org/)
+- FastAPI (https://fastapi.tiangolo.com/)
+- Qiskit (https://qiskit.org/)
+- Three.js (https://threejs.org/)
+
+This product uses data from the National Institute of Statistics of Rwanda (NISR)
+and is developed for the NISR 2025 Big Data Hackathon.
