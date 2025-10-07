@@ -34,16 +34,45 @@ A quantum computing platform that designs sustainable agricultural solutions for
 ## Repository Structure
 
 ```
-Rwanda-Quantum-Agricultural/
-├── backend/              # FastAPI quantum engine
-│   ├── main.py          # API endpoints
-│   ├── simulation_core.py  # Quantum simulations
-│   └── requirements.txt
-├── frontend/            # React app
-│   ├── src/
-│   ├── public/
-│   └── package.json
-└── README.md           # This file
+├── backend
+│   ├── DataSets
+│   │   └── datasetlink.txt
+│   ├── .dockerignore
+│   ├── .gitignore
+│   ├── .python-version
+│   ├── Dockerfile
+│   ├── main.py
+│   ├── README.MD
+│   ├── render.yaml
+│   ├── requirements.txt
+│   └── simulation_core.py
+├── demo
+│   └── demo-video.webm
+└── frontend
+    ├── public
+    ├── src
+    │   ├── components
+    │   │   ├── ControlPanel.js
+    │   │   ├── Dashboard.js
+    │   │   └── MoleculeViewer.js
+    │   ├── utils
+    │   │   └── molecules.js
+    │   ├── App.css
+    │   ├── App.js
+    │   ├── App.test.js
+    │   ├── index.css
+    │   ├── index.js
+    │   ├── logo.svg
+    │   ├── reportWebVital.js
+    │   └── setupTests.js
+    ├── .gitignore
+    ├── NOTICE
+    ├── package-lock.json
+    ├── package.json
+    ├── README.md
+    ├── LICENSE
+    ├── proof of eligibility.pdf
+    └── README.md
 ```
 
 **Note:** Separate deployment repos exist for cleaner CI/CD:
