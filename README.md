@@ -128,7 +128,7 @@ See `requirements.txt` and `package.json` for full lists.
 
 - Email: prodyiki@gmail.com
 - GitHub: https://github.com/yiki-ui/
-- Live Platform: [Your Demo URL]
+- Live Platform: https://rwanda-quantum-agriculture.vercel.app/
 
 ## License
 
