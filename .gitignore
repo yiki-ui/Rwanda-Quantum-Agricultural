@@ -6,6 +6,11 @@
 .env.test
 .env.production
 
+# Large files and directories
+backend/learncesium/
+backend/processed_gis/*.geojson
+*.geojson
+
 # Node modules
 node_modules/
 frontend/node_modules/
