@@ -8,6 +8,21 @@ The Rwanda Quantum Agricultural Intelligence Platform is an innovative solution 
 
 This platform combines quantum molecular simulation with geospatial intelligence to provide farmers, researchers, and agricultural stakeholders with advanced tools for optimizing crop yields, understanding soil chemistry, and making informed decisions about fertilizers and agricultural inputs. By simulating molecular interactions at the quantum level, the platform enables unprecedented insights into agricultural processes.
 
+## Important Requirements and Limitations
+
+### Quantum Computing Infrastructure
+⚠️ **CRITICAL**: Due to the extensive computational requirements of the molecular database and quantum simulations, this platform requires access to a **virtual quantum machine such as IBM Quantum Computer** to run exact simulations. Local development environments can run simplified simulations, but production-grade molecular analysis requires dedicated quantum computing resources.
+
+### GIS and Satellite Data Access
+⚠️ **DATA ACCESS REQUIREMENT**: To utilize the full GIS mapping and satellite imagery capabilities of this platform, **ACCESS TO RAB (Rwanda Agriculture and Animal Resources Development Board) DATASETS** is required. This includes:
+- Detailed soil composition data by district
+- Satellite imagery for crop monitoring
+- Agricultural yield statistics
+- Weather and climate data
+- Land use classifications
+
+Please coordinate with RAB and relevant authorities to obtain necessary data access permissions for production deployment.
+
 ## Key Features
 
 ### Quantum Molecular Simulation
@@ -16,6 +31,7 @@ This platform combines quantum molecular simulation with geospatial intelligence
 - ADMET (Absorption, Distribution, Metabolism, Excretion, Toxicity) property prediction
 - Spectroscopy analysis for compound identification
 - 3D molecular visualization with interactive controls
+- **Requires IBM Quantum or equivalent infrastructure for full functionality**
 
 ### Rwanda-Specific Agricultural Intelligence
 - Interactive GIS mapping of all 30 districts in Rwanda
@@ -23,6 +39,7 @@ This platform combines quantum molecular simulation with geospatial intelligence
 - Geospatial analysis for precision agriculture
 - Regional crop optimization recommendations
 - Soil chemistry analysis specific to Rwandan agricultural zones
+- **Requires RAB dataset access for complete data integration**
 
 ### Advanced Analytics Dashboard
 - Platform performance metrics and usage statistics
@@ -84,6 +101,11 @@ This platform combines quantum molecular simulation with geospatial intelligence
 - OpenZeppelin contracts for security and upgradeability
 - Ethers.js for Web3 integration
 
+### Quantum Computing Infrastructure
+- IBM Quantum (production requirement)
+- Qiskit Runtime for optimized quantum execution
+- Local Qiskit Aer simulator (development only)
+
 ## Project Structure
 
 ```
@@ -113,6 +135,8 @@ Rwanda-Quantum-Agriculture/
 - Node.js (v16 or higher)
 - Python 3.9 or higher
 - npm or yarn package manager
+- **IBM Quantum account and API credentials (for production)**
+- **RAB dataset access credentials (for full GIS functionality)**
 
 ### Backend Setup
 
@@ -130,6 +154,8 @@ pip install -r requirements.txt
 ```bash
 cp .env.example .env
 # Edit .env with your configuration
+# Add IBM Quantum API credentials
+# Add RAB dataset access credentials
 ```
 
 4. Start the backend server:
@@ -184,19 +210,36 @@ cd ..
 ./start-blockchain.sh
 ```
 
+### IBM Quantum Setup (Production)
+
+1. Create an IBM Quantum account at https://quantum-computing.ibm.com/
+2. Generate API credentials
+3. Add credentials to backend `.env` file:
+```bash
+IBM_QUANTUM_TOKEN=your_token_here
+IBM_QUANTUM_INSTANCE=ibm-q/open/main
+```
+
+### RAB Dataset Integration
+
+1. Contact Rwanda Agriculture and Animal Resources Development Board (RAB)
+2. Request access to agricultural datasets
+3. Configure data access in backend `.env` file
+4. Update GIS data paths in `processed_gis/` directory
+
 ## Usage
 
 ### Running Quantum Simulations
 1. Navigate to the Simulation tab
 2. Select or design a molecule
 3. Configure simulation parameters
-4. Execute quantum simulation
+4. Execute quantum simulation (requires IBM Quantum access)
 5. Analyze results and visualizations
 
 ### Exploring Rwanda Agricultural Data
 1. Access the Rwanda Agricultural Intelligence tab
 2. Select a district on the interactive map
-3. View district-specific agricultural data
+3. View district-specific agricultural data (requires RAB dataset access)
 4. Analyze soil chemistry and crop recommendations
 
 ### Using the AI Assistant
@@ -240,6 +283,19 @@ cd backend
 # Deploy using your preferred hosting service
 ```
 
+## Deployment Considerations
+
+### Production Checklist
+- [ ] IBM Quantum account configured with sufficient quantum time allocation
+- [ ] RAB dataset access obtained and configured
+- [ ] Environment variables properly set for all services
+- [ ] Database properly sized for molecular data storage
+- [ ] Quantum simulation queue management configured
+- [ ] GIS data pipelines established with RAB
+- [ ] Security audit completed for smart contracts
+- [ ] API rate limiting configured
+- [ ] Monitoring and logging systems in place
+
 ## Contributing
 
 This project was developed for the NISR 2025 Big Data Hackathon. Contributions, suggestions, and feedback are welcome.
@@ -251,6 +307,8 @@ See LICENSE file for details.
 ## Acknowledgments
 
 - National Institute of Statistics of Rwanda (NISR) for organizing the hackathon
+- Rwanda Agriculture and Animal Resources Development Board (RAB) for agricultural data support
+- IBM Quantum for quantum computing infrastructure
 - Qiskit and IBM Quantum for quantum computing frameworks
 - OpenZeppelin for secure smart contract libraries
 - The open-source community for various tools and libraries used in this project
@@ -258,4 +316,11 @@ See LICENSE file for details.
 ## Contact
 
 For questions, support, or collaboration opportunities, please refer to the proof of eligibility documentation included in this repository.
-# agri-quantum
+
+For IBM Quantum access or RAB dataset inquiries, please contact the project maintainers through the official channels provided in the hackathon documentation.
+
+---
+
+## Disclaimer
+
+This platform is designed for agricultural research and optimization. Quantum simulations require proper computational resources, and agricultural recommendations should be validated by agronomic experts before implementation. Always consult with local agricultural authorities and experts when making farming decisions.
