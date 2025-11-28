@@ -16,8 +16,18 @@ try:
     
     from qiskit_algorithms import VQE
     from qiskit_algorithms.optimizers import SPSA
-    from qiskit.primitives import Estimator
     from qiskit.circuit.library import TwoLocal
+    
+    # Try different Estimator imports for compatibility
+    try:
+        from qiskit.primitives import Estimator
+    except ImportError:
+        try:
+            from qiskit.primitives import BaseEstimator as Estimator
+        except ImportError:
+            # Fallback for older versions
+            from qiskit.algorithms.optimizers import SPSA
+            Estimator = None
     
     QISKIT_AVAILABLE = True
 except ImportError as e:
@@ -348,7 +358,7 @@ def run_molecule_simulation(molecule_string: str, method: str = "vqe", bond_dist
         }
 
         # Quantum simulation (VQE)
-        if method == "vqe" and classical_energy is not None and QISKIT_AVAILABLE:
+        if method == "vqe" and classical_energy is not None and QISKIT_AVAILABLE and Estimator is not None:
             try:
                 driver = PySCFDriver(atom=molecule_for_drivers, basis='sto-3g')
                 problem = driver.run()

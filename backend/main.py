@@ -10,6 +10,10 @@ import numpy as np
 import pandas as pd
 from datetime import datetime, date
 import json
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Import quantum simulation core
 from simulation_core import (
@@ -21,6 +25,26 @@ from simulation_core import (
     simplified_molecular_docking,
     predict_material_properties,
     generate_hackathon_dashboard_data
+)
+
+# Import molecular database and sub-atomic designer
+from molecular_database import molecular_db
+from sub_atomic_designer import sub_atomic_designer, MaterialTarget
+from rwanda_demo_molecules import (
+    initialize_rwanda_demo_molecules,
+    get_rwanda_agricultural_recommendations,
+    get_rwanda_molecule_statistics,
+    RWANDA_DEMO_MOLECULES
+)
+
+# Import AI Agent
+from ai_agent import (
+    AIAgent,
+    ChatMessage,
+    ChatRequest,
+    ChatResponse,
+    process_chat_message,
+    get_agent_info
 )
 
 app = FastAPI(
@@ -113,6 +137,76 @@ class MolecularDockingAnalysisRequest(BaseModel):
     compound_string: str = Field(..., description="Molecular structure of test compound")
     target_site: str = Field(..., description="pest_receptor, nutrient_carrier, plant_membrane")
     analysis_type: str = Field("binding_affinity", description="binding_affinity, toxicity_assessment, absorption_rate")
+
+# New data models for molecular database and sub-atomic design
+class MoleculeUploadRequest(BaseModel):
+    name: str = Field(..., description="Name for the molecule")
+    molecule_string: str = Field(..., description="Molecule structure string")
+    category: str = Field("general", description="Category: pesticide, nutrient, material, general")
+    description: Optional[str] = Field(None, description="Description of the molecule")
+
+class MoleculeUploadResponse(BaseModel):
+    success: bool
+    molecule_id: Optional[int] = None
+    message: str
+    molecular_properties: Optional[Dict] = None
+    error: Optional[str] = None
+
+class SubAtomicDesignRequest(BaseModel):
+    base_molecule_id: int = Field(..., description="ID of base molecule to modify")
+    target_strength: float = Field(0.5, ge=0.0, le=1.0, description="Target strength (0-1)")
+    target_flexibility: float = Field(0.5, ge=0.0, le=1.0, description="Target flexibility (0-1)")
+    target_biodegradability: float = Field(0.7, ge=0.0, le=1.0, description="Target biodegradability (0-1)")
+    target_uv_resistance: float = Field(0.5, ge=0.0, le=1.0, description="Target UV resistance (0-1)")
+    target_water_resistance: float = Field(0.5, ge=0.0, le=1.0, description="Target water resistance (0-1)")
+    target_cost_effectiveness: float = Field(0.6, ge=0.0, le=1.0, description="Target cost effectiveness (0-1)")
+    target_environmental_safety: float = Field(0.8, ge=0.0, le=1.0, description="Target environmental safety (0-1)")
+    target_agricultural_suitability: float = Field(0.7, ge=0.0, le=1.0, description="Target agricultural suitability (0-1)")
+    max_iterations: int = Field(10, ge=1, le=50, description="Maximum design iterations")
+
+class SubAtomicDesignResponse(BaseModel):
+    success: bool
+    original_molecule_id: Optional[int] = None
+    designed_molecule_id: Optional[int] = None
+    design_results: Optional[Dict] = None
+    fitness_score: Optional[float] = None
+    design_iterations: Optional[int] = None
+    recommendations: Optional[List[str]] = None
+    error: Optional[str] = None
+
+class MoleculeSearchRequest(BaseModel):
+    query: Optional[str] = Field(None, description="Search query for name or description")
+    category: Optional[str] = Field(None, description="Filter by category")
+    min_atoms: Optional[int] = Field(None, description="Minimum number of atoms")
+    max_atoms: Optional[int] = Field(None, description="Maximum number of atoms")
+    limit: int = Field(20, ge=1, le=100, description="Maximum results to return")
+
+class MolecularLibraryRequest(BaseModel):
+    base_molecules: List[str] = Field(..., description="List of base molecule strings")
+    applications: List[str] = Field(..., description="Target applications: packaging, mulch, irrigation, etc.")
+    performance_requirements: Dict[str, float] = Field(..., description="Performance requirements for each property")
+
+# Rwanda-specific data models
+class RwandaRecommendationRequest(BaseModel):
+    crop_type: Optional[str] = Field(None, description="Crop type: maize, coffee, beans, tea, cassava, potato")
+    pest_issue: Optional[str] = Field(None, description="Pest problem: fall_armyworm, coffee_berry_borer, bean_stem_maggot")
+    nutrient_deficiency: Optional[str] = Field(None, description="Nutrient deficiency: nitrogen, iron, potassium")
+    district: Optional[str] = Field(None, description="Rwanda district for location-specific recommendations")
+
+class RwandaRecommendationResponse(BaseModel):
+    success: bool
+    recommendations: List[Dict[str, str]]
+    total_recommendations: int
+    location_specific_notes: Optional[List[str]] = None
+    error: Optional[str] = None
+
+class RwandaMoleculeStatsResponse(BaseModel):
+    success: bool
+    total_rwanda_molecules: int
+    by_category: Dict[str, int]
+    applications_coverage: Dict[str, int]
+    molecules_by_crop: Dict[str, int]
+    error: Optional[str] = None
 
 # --- Quantum Agricultural Functions ---
 
@@ -540,6 +634,703 @@ async def molecular_docking_endpoint(request: MolecularDockingAnalysisRequest):
             num_poses=5
         )
         return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- New Molecular Database Endpoints ---
+
+@app.post("/upload_molecule", response_model=MoleculeUploadResponse, summary="Upload Molecule to Database")
+async def upload_molecule_endpoint(request: MoleculeUploadRequest):
+    """Upload a molecule to the database for storage and future use"""
+    try:
+        # Add molecule to database
+        molecule_id = molecular_db.add_molecule(
+            name=request.name,
+            molecule_string=request.molecule_string,
+            category=request.category,
+            description=request.description
+        )
+        
+        # Get molecular properties
+        molecule_data = molecular_db.get_molecule(molecule_id)
+        
+        return MoleculeUploadResponse(
+            success=True,
+            molecule_id=molecule_id,
+            message=f"Molecule '{request.name}' uploaded successfully",
+            molecular_properties={
+                "molecular_weight": molecule_data.get("molecular_weight"),
+                "num_atoms": molecule_data.get("num_atoms"),
+                "category": molecule_data.get("category")
+            }
+        )
+    except Exception as e:
+        return MoleculeUploadResponse(
+            success=False,
+            message="Failed to upload molecule",
+            error=str(e)
+        )
+
+@app.post("/upload_molecule_file", summary="Upload Molecule File")
+async def upload_molecule_file_endpoint(file: UploadFile = File(...), 
+                                       name: str = None, 
+                                       category: str = "general",
+                                       description: str = None):
+    """Upload molecule from file (SDF, MOL, XYZ, PDB formats)"""
+    try:
+        # Save uploaded file temporarily
+        import tempfile
+        import os
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file.filename.split('.')[-1]}") as temp_file:
+            content = await file.read()
+            temp_file.write(content)
+            temp_file_path = temp_file.name
+        
+        try:
+            # Add molecule from file
+            molecule_id = molecular_db.add_molecule_from_file(
+                file_path=temp_file_path,
+                name=name or file.filename.split('.')[0],
+                category=category,
+                description=description
+            )
+            
+            # Get molecular properties
+            molecule_data = molecular_db.get_molecule(molecule_id)
+            
+            return {
+                "success": True,
+                "molecule_id": molecule_id,
+                "message": f"Molecule file '{file.filename}' uploaded successfully",
+                "molecular_properties": {
+                    "molecular_weight": molecule_data.get("molecular_weight"),
+                    "num_atoms": molecule_data.get("num_atoms"),
+                    "category": molecule_data.get("category"),
+                    "file_format": molecule_data.get("file_format")
+                }
+            }
+        finally:
+            # Clean up temporary file
+            os.unlink(temp_file_path)
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/search_molecules", summary="Search Molecules in Database")
+async def search_molecules_endpoint(request: MoleculeSearchRequest):
+    """Search for molecules in the database"""
+    try:
+        molecules = molecular_db.search_molecules(
+            query=request.query,
+            category=request.category,
+            min_atoms=request.min_atoms,
+            max_atoms=request.max_atoms
+        )
+        
+        # Limit results
+        limited_molecules = molecules[:request.limit]
+        
+        return {
+            "success": True,
+            "total_found": len(molecules),
+            "returned_count": len(limited_molecules),
+            "molecules": limited_molecules
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/molecule/{molecule_id}", summary="Get Molecule Details")
+async def get_molecule_endpoint(molecule_id: int):
+    """Get detailed information about a specific molecule"""
+    try:
+        molecule = molecular_db.get_molecule(molecule_id)
+        
+        if not molecule:
+            raise HTTPException(status_code=404, detail="Molecule not found")
+        
+        return {
+            "success": True,
+            "molecule": molecule
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/simulate_molecule/{molecule_id}", summary="Run Simulation on Stored Molecule")
+async def simulate_molecule_endpoint(molecule_id: int, method: str = "hf"):
+    """Run quantum simulation on a molecule stored in the database"""
+    try:
+        result = molecular_db.run_and_cache_simulation(molecule_id, method)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- Sub-Atomic Design Endpoints ---
+
+@app.post("/design_sub_atomic_material", response_model=SubAtomicDesignResponse, summary="Sub-Atomic Material Design")
+async def design_sub_atomic_material_endpoint(request: SubAtomicDesignRequest):
+    """Design materials at sub-atomic level for specific agricultural applications"""
+    try:
+        # Get base molecule
+        base_molecule = molecular_db.get_molecule(request.base_molecule_id)
+        if not base_molecule:
+            raise HTTPException(status_code=404, detail="Base molecule not found")
+        
+        # Create material target
+        target = MaterialTarget(
+            strength=request.target_strength,
+            flexibility=request.target_flexibility,
+            biodegradability=request.target_biodegradability,
+            uv_resistance=request.target_uv_resistance,
+            water_resistance=request.target_water_resistance,
+            cost_effectiveness=request.target_cost_effectiveness,
+            environmental_safety=request.target_environmental_safety,
+            agricultural_suitability=request.target_agricultural_suitability
+        )
+        
+        # Run sub-atomic design
+        design_result = sub_atomic_designer.design_material(
+            base_molecule['molecule_string'],
+            target,
+            max_iterations=request.max_iterations
+        )
+        
+        # Store designed molecule in database
+        if design_result['success']:
+            designed_molecule_id = molecular_db.add_molecule(
+                name=f"SubAtomic_Design_{request.base_molecule_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                molecule_string=design_result['designed_molecule'],
+                category="sub_atomic_designed",
+                description=f"Sub-atomic designed material based on molecule {request.base_molecule_id}"
+            )
+            
+            return SubAtomicDesignResponse(
+                success=True,
+                original_molecule_id=request.base_molecule_id,
+                designed_molecule_id=designed_molecule_id,
+                design_results=design_result,
+                fitness_score=design_result.get('fitness_score'),
+                design_iterations=design_result.get('design_iterations'),
+                recommendations=design_result.get('design_recommendations')
+            )
+        else:
+            return SubAtomicDesignResponse(
+                success=False,
+                error="Sub-atomic design failed"
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        return SubAtomicDesignResponse(
+            success=False,
+            error=str(e)
+        )
+
+@app.post("/create_molecular_library", summary="Create Molecular Design Library")
+async def create_molecular_library_endpoint(request: MolecularLibraryRequest):
+    """Create a library of designed materials for different agricultural applications"""
+    try:
+        # Create material targets based on applications
+        targets = []
+        
+        for app in request.applications:
+            if app == "packaging":
+                target = MaterialTarget(
+                    strength=0.8,
+                    flexibility=0.4,
+                    biodegradability=0.6,
+                    uv_resistance=0.7,
+                    water_resistance=0.8,
+                    cost_effectiveness=0.7,
+                    environmental_safety=0.9,
+                    agricultural_suitability=0.8
+                )
+            elif app == "mulch":
+                target = MaterialTarget(
+                    strength=0.5,
+                    flexibility=0.6,
+                    biodegradability=0.9,
+                    uv_resistance=0.8,
+                    water_resistance=0.3,
+                    cost_effectiveness=0.8,
+                    environmental_safety=0.9,
+                    agricultural_suitability=0.9
+                )
+            elif app == "irrigation":
+                target = MaterialTarget(
+                    strength=0.7,
+                    flexibility=0.8,
+                    biodegradability=0.4,
+                    uv_resistance=0.9,
+                    water_resistance=0.9,
+                    cost_effectiveness=0.6,
+                    environmental_safety=0.8,
+                    agricultural_suitability=0.7
+                )
+            else:
+                # Default balanced target
+                target = MaterialTarget()
+            
+            # Apply custom requirements
+            for prop, value in request.performance_requirements.items():
+                if hasattr(target, prop):
+                    setattr(target, prop, value)
+            
+            targets.append(target)
+        
+        # Create molecular library
+        library = sub_atomic_designer.create_molecular_library(
+            request.base_molecules,
+            targets
+        )
+        
+        return {
+            "success": True,
+            "library": library
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/database_stats", summary="Get Database Statistics")
+async def get_database_stats_endpoint():
+    """Get statistics about the molecular database"""
+    try:
+        stats = molecular_db.get_database_stats()
+        return {
+            "success": True,
+            "stats": stats
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- Rwanda-Specific Agricultural Endpoints ---
+
+@app.post("/initialize_rwanda_molecules", summary="Initialize Rwanda Demo Molecules")
+async def initialize_rwanda_molecules_endpoint():
+    """Initialize the database with Rwanda-relevant agricultural molecules"""
+    try:
+        added_molecules = initialize_rwanda_demo_molecules()
+        return {
+            "success": True,
+            "message": f"Successfully initialized {len(added_molecules)} Rwanda-relevant molecules",
+            "added_molecules": added_molecules
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/rwanda_demo_molecules", summary="Get Rwanda Demo Molecules")
+async def get_rwanda_demo_molecules_endpoint():
+    """Get information about all available Rwanda-relevant demo molecules"""
+    try:
+        return {
+            "success": True,
+            "total_molecules": len(RWANDA_DEMO_MOLECULES),
+            "molecules": RWANDA_DEMO_MOLECULES
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/rwanda_agricultural_recommendations", response_model=RwandaRecommendationResponse, summary="Get Rwanda Agricultural Recommendations")
+async def get_rwanda_recommendations_endpoint(request: RwandaRecommendationRequest):
+    """Get molecular recommendations based on Rwanda agricultural needs"""
+    try:
+        recommendations = get_rwanda_agricultural_recommendations(
+            crop_type=request.crop_type,
+            pest_issue=request.pest_issue,
+            nutrient_deficiency=request.nutrient_deficiency
+        )
+        
+        # Add location-specific notes based on district
+        location_notes = []
+        if request.district:
+            if request.district.lower() in ["musanze", "burera", "gakenke", "gicumbi", "rulindo"]:
+                location_notes.append("Northern Province: Ideal for potato and tea cultivation")
+                location_notes.append("High altitude region - consider cold-resistant formulations")
+            elif request.district.lower() in ["huye", "nyanza", "muhanga"]:
+                location_notes.append("Southern Province: Major coffee growing region")
+                location_notes.append("Focus on coffee berry borer prevention")
+            elif request.district.lower() in ["nyagatare", "gatsibo", "kayonza"]:
+                location_notes.append("Eastern Province: Major maize and beans production")
+                location_notes.append("Fall armyworm is a significant threat in this region")
+        
+        return RwandaRecommendationResponse(
+            success=True,
+            recommendations=recommendations,
+            total_recommendations=len(recommendations),
+            location_specific_notes=location_notes if location_notes else None
+        )
+    except Exception as e:
+        return RwandaRecommendationResponse(
+            success=False,
+            recommendations=[],
+            total_recommendations=0,
+            error=str(e)
+        )
+
+@app.get("/rwanda_molecule_statistics", response_model=RwandaMoleculeStatsResponse, summary="Get Rwanda Molecule Statistics")
+async def get_rwanda_molecule_statistics_endpoint():
+    """Get statistics about Rwanda-relevant molecules in the database"""
+    try:
+        stats = get_rwanda_molecule_statistics()
+        return RwandaMoleculeStatsResponse(
+            success=True,
+            total_rwanda_molecules=stats["total_rwanda_molecules"],
+            by_category=stats["by_category"],
+            applications_coverage=stats["applications_coverage"],
+            molecules_by_crop=stats["molecules_by_crop"]
+        )
+    except Exception as e:
+        return RwandaMoleculeStatsResponse(
+            success=False,
+            total_rwanda_molecules=0,
+            by_category={},
+            applications_coverage={},
+            molecules_by_crop={},
+            error=str(e)
+        )
+
+@app.get("/rwanda_crop_pest_matrix", summary="Get Rwanda Crop-Pest-Solution Matrix")
+async def get_rwanda_crop_pest_matrix_endpoint():
+    """Get a comprehensive matrix of Rwanda crops, pests, and molecular solutions"""
+    try:
+        matrix = {
+            "maize": {
+                "major_pests": ["fall_armyworm", "stalk_borer"],
+                "recommended_molecules": ["Azadirachtin (Neem Oil Active)"],
+                "nutrient_needs": ["Urea"],
+                "seasonal_considerations": ["Season A", "Season B"]
+            },
+            "coffee": {
+                "major_pests": ["coffee_berry_borer", "coffee_leaf_rust"],
+                "recommended_molecules": ["Pyrethrin I", "Caffeine"],
+                "nutrient_needs": ["Potassium Chloride (Muriate of Potash)"],
+                "seasonal_considerations": ["Year-round", "Harvest season critical"]
+            },
+            "beans": {
+                "major_pests": ["bean_stem_maggot", "aphids"],
+                "recommended_molecules": ["Azadirachtin (Neem Oil Active)", "Iron-EDTA Chelate"],
+                "nutrient_needs": ["Iron-EDTA Chelate"],
+                "seasonal_considerations": ["Season A", "Season B"]
+            },
+            "tea": {
+                "major_pests": ["tea_mosquito_bug", "thrips"],
+                "recommended_molecules": ["Pyrethrin I"],
+                "nutrient_needs": ["Potassium Chloride (Muriate of Potash)"],
+                "seasonal_considerations": ["Year-round harvesting"]
+            },
+            "cassava": {
+                "major_pests": ["cassava_mosaic_virus", "cassava_mealybug"],
+                "recommended_molecules": ["Iron-EDTA Chelate"],
+                "nutrient_needs": ["Iron-EDTA Chelate", "Urea"],
+                "seasonal_considerations": ["Season A", "Season B", "Season C"]
+            },
+            "potato": {
+                "major_pests": ["potato_late_blight", "potato_tuber_moth"],
+                "recommended_molecules": ["Pyrethrin I"],
+                "nutrient_needs": ["Urea", "Potassium Chloride (Muriate of Potash)"],
+                "seasonal_considerations": ["Season B", "Season C"]
+            }
+        }
+        
+        return {
+            "success": True,
+            "crop_pest_matrix": matrix,
+            "total_crops": len(matrix),
+            "last_updated": datetime.now().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- Advanced Simulation Endpoints ---
+
+@app.post("/run_bond_scan", summary="Run Bond Distance Scan")
+async def run_bond_scan_endpoint(request: dict):
+    """Run a bond distance scan analysis"""
+    try:
+        result = run_bond_scan(
+            molecule_string=request.get("molecule_string"),
+            atom_indices=request.get("atom_indices"),
+            start_distance=request.get("start_distance"),
+            end_distance=request.get("end_distance"),
+            steps=request.get("steps"),
+            method=request.get("method", "hf")
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/optimize_geometry", summary="Optimize Molecular Geometry")
+async def optimize_geometry_endpoint(request: dict):
+    """Find the optimized molecular geometry"""
+    try:
+        result = find_optimized_geometry(
+            molecule_string=request.get("molecule_string"),
+            method=request.get("method", "hf")
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/find_transition_state", summary="Find Transition State")
+async def find_transition_state_endpoint(request: dict):
+    """Find transition state between reactants and products"""
+    try:
+        result = find_transition_state(
+            reactant_string=request.get("reactant_string"),
+            product_string=request.get("product_string")
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/predict_material_properties", summary="Predict Material Properties")
+async def predict_material_properties_endpoint(request: dict):
+    """Predict bulk material properties from molecular structure"""
+    try:
+        result = predict_material_properties(
+            molecule_string=request.get("molecule_string"),
+            num_repeats=request.get("num_repeats", 2)
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- GIS Data Endpoints ---
+
+@app.get("/gis/districts", summary="Get Rwanda Districts GeoJSON")
+async def get_gis_districts():
+    """
+    Get GeoJSON data for all Rwanda districts.
+    
+    Returns a FeatureCollection with district polygons and properties.
+    Used for GIS map visualization and district selection.
+    """
+    try:
+        import os
+        # Try districts file first, fall back to sectors
+        gis_file = os.path.join(os.path.dirname(__file__), "processed_gis", "rwanda_districts.geojson")
+        if not os.path.exists(gis_file):
+            gis_file = os.path.join(os.path.dirname(__file__), "processed_gis", "rwanda_sectors.geojson")
+        
+        if not os.path.exists(gis_file):
+            raise HTTPException(status_code=404, detail="GIS data file not found")
+        
+        with open(gis_file, 'r', encoding='utf-8') as f:
+            geojson_data = json.load(f)
+        
+        # Process features to add computed properties (bounds, centroid)
+        for feature in geojson_data.get("features", []):
+            if feature.get("geometry", {}).get("type") == "Polygon":
+                coords = feature["geometry"]["coordinates"][0]
+                lons = [c[0] for c in coords]
+                lats = [c[1] for c in coords]
+                
+                # Add bounding box
+                feature["properties"]["bbox"] = {
+                    "minLon": min(lons),
+                    "maxLon": max(lons),
+                    "minLat": min(lats),
+                    "maxLat": max(lats)
+                }
+                
+                # Add centroid
+                feature["properties"]["centroid"] = {
+                    "lon": (min(lons) + max(lons)) / 2,
+                    "lat": (min(lats) + max(lats)) / 2
+                }
+        
+        return {
+            "success": True,
+            "type": "FeatureCollection",
+            "features": geojson_data.get("features", []),
+            "total_districts": len(geojson_data.get("features", []))
+        }
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="GIS data file not found")
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="Invalid GeoJSON format")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error loading GIS data: {str(e)}")
+
+@app.get("/gis/district/{district_name}", summary="Get Specific District GeoJSON")
+async def get_gis_district(district_name: str):
+    """
+    Get GeoJSON data for a specific Rwanda district by name.
+    
+    Args:
+        district_name: Name of the district (e.g., "Kigali", "Nyamagabe")
+    
+    Returns the district polygon with properties including bounds and centroid.
+    """
+    try:
+        import os
+        # Try districts file first, fall back to sectors
+        gis_file = os.path.join(os.path.dirname(__file__), "processed_gis", "rwanda_districts.geojson")
+        if not os.path.exists(gis_file):
+            gis_file = os.path.join(os.path.dirname(__file__), "processed_gis", "rwanda_sectors.geojson")
+        
+        if not os.path.exists(gis_file):
+            raise HTTPException(status_code=404, detail="GIS data file not found")
+        
+        with open(gis_file, 'r', encoding='utf-8') as f:
+            geojson_data = json.load(f)
+        
+        # Find district by NAME_2 property
+        for feature in geojson_data.get("features", []):
+            if feature.get("properties", {}).get("NAME_2", "").lower() == district_name.lower():
+                if feature.get("geometry", {}).get("type") == "Polygon":
+                    coords = feature["geometry"]["coordinates"][0]
+                    lons = [c[0] for c in coords]
+                    lats = [c[1] for c in coords]
+                    
+                    # Add bounding box
+                    feature["properties"]["bbox"] = {
+                        "minLon": min(lons),
+                        "maxLon": max(lons),
+                        "minLat": min(lats),
+                        "maxLat": max(lats)
+                    }
+                    
+                    # Add centroid
+                    feature["properties"]["centroid"] = {
+                        "lon": (min(lons) + max(lons)) / 2,
+                        "lat": (min(lats) + max(lats)) / 2
+                    }
+                
+                return {
+                    "success": True,
+                    "feature": feature
+                }
+        
+        raise HTTPException(status_code=404, detail=f"District '{district_name}' not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error loading GIS data: {str(e)}")
+
+# --- AI Chatbot Agent Endpoints ---
+
+@app.get("/ai/info", summary="Get AI Agent Information")
+async def get_ai_agent_info():
+    """Get information about the AI chatbot agent"""
+    return get_agent_info()
+
+@app.post("/ai/chat", summary="Chat with AI Agent", response_model=ChatResponse)
+async def chat_with_agent(request: ChatRequest):
+    """
+    Chat with the AI agriculture assistant
+    
+    The agent can:
+    - Explain quantum agriculture concepts
+    - Provide region-specific recommendations
+    - Guide users through simulations
+    - Suggest molecule designs
+    - Answer farming questions
+    """
+    try:
+        response = await process_chat_message(
+            message=request.message,
+            history=request.conversation_history,
+            context=request.context
+        )
+        return response
+    except Exception as e:
+        return ChatResponse(
+            message=f"Error processing request: {str(e)}",
+            timestamp=datetime.now().isoformat()
+        )
+
+@app.post("/ai/agriculture-info", summary="Get Agricultural Information")
+async def get_agriculture_information(query: str):
+    """
+    Get information about crops, pests, or quantum concepts
+    
+    Examples:
+    - "coffee pests"
+    - "fall armyworm"
+    - "bond scanning"
+    - "geometry optimization"
+    """
+    try:
+        agent = AIAgent()
+        info = agent.get_agriculture_info(query)
+        
+        if info:
+            return {
+                "success": True,
+                "query": query,
+                "type": info["type"],
+                "data": info["data"]
+            }
+        else:
+            return {
+                "success": False,
+                "query": query,
+                "message": "No information found for this query"
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/ai/crops", summary="List Available Crops")
+async def get_available_crops():
+    """Get list of crops with agricultural information"""
+    try:
+        agent = AIAgent()
+        crops = agent.agriculture_knowledge["crops"]
+        return {
+            "success": True,
+            "crops": list(crops.keys()),
+            "total": len(crops),
+            "details": crops
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/ai/pests", summary="List Available Pests")
+async def get_available_pests():
+    """Get list of pests with control information"""
+    try:
+        agent = AIAgent()
+        pests = agent.agriculture_knowledge["pesticides"]
+        return {
+            "success": True,
+            "pests": list(pests.keys()),
+            "total": len(pests),
+            "details": pests
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/ai/concepts", summary="List Quantum Concepts")
+async def get_quantum_concepts():
+    """Get list of quantum computing concepts explained for agriculture"""
+    try:
+        agent = AIAgent()
+        concepts = agent.agriculture_knowledge["quantum_concepts"]
+        return {
+            "success": True,
+            "concepts": list(concepts.keys()),
+            "total": len(concepts),
+            "details": concepts
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/ai/districts", summary="List Rwanda Districts")
+async def get_rwanda_districts():
+    """Get list of all Rwanda districts for regional recommendations"""
+    try:
+        agent = AIAgent()
+        districts = agent.agriculture_knowledge["rwandan_districts"]
+        return {
+            "success": True,
+            "districts": districts,
+            "total": len(districts)
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

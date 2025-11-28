@@ -1,0 +1,23 @@
+{
+  "network": "localhost",
+  "contractAddress": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+  "adminAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "tiers": {
+    "starter": {
+      "price": "15.0",
+      "credits": "100",
+      "priceWei": "15000000000000000000"
+    },
+    "pro": {
+      "price": "39.0",
+      "credits": "500",
+      "priceWei": "39000000000000000000"
+    },
+    "teams": {
+      "price": "49.0",
+      "credits": "500",
+      "priceWei": "49000000000000000000"
+    }
+  },
+  "timestamp": "2025-11-27T13:20:56.325Z"
+}

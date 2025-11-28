@@ -6,7 +6,9 @@ wheel==0.44.0
 fastapi==0.115.12
 uvicorn[standard]==0.20.0
 pydantic==2.8.2
-python-multipart==0.0.6
+python-multipart==0.0.20
+httpx==0.25.0
+python-dotenv==1.0.0
 
 # Scientific computing
 numpy==1.26.4
@@ -21,3 +23,5 @@ qiskit-aer==0.13.3
 qiskit-algorithms==0.2.2
 qiskit-nature==0.7.2
 pyscf==2.3.0
+
+# Database support (sqlite3 is built into Python)

@@ -1,0 +1,147 @@
+/* Pricing Page Container Styles */
+
+.pricing-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f3460 0%, #1a1a2e 50%, #16213e 100%);
+  padding: 4rem 2rem;
+  color: #ffffff;
+}
+
+/* Header */
+.pricing-page__header {
+  text-align: center;
+  margin-bottom: 4rem;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.pricing-page__title {
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  background: linear-gradient(90deg, #ffffff 0%, #d0d0d0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -1px;
+}
+
+.pricing-page__subtitle {
+  font-size: 1.25rem;
+  color: #b0b0b0;
+  margin: 0;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+/* Container */
+.pricing-page__container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Cards Grid */
+.pricing-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+  align-items: stretch;
+  margin-bottom: 3rem;
+}
+
+/* Footer */
+.pricing-page__footer {
+  text-align: center;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(0, 208, 132, 0.2);
+  max-width: 800px;
+  margin: 0 auto;
+  color: #b0b0b0;
+  font-size: 0.95rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .pricing-cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+
+  .pricing-page__title {
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .pricing-page {
+    padding: 2rem 1rem;
+  }
+
+  .pricing-page__header {
+    margin-bottom: 2rem;
+  }
+
+  .pricing-page__title {
+    font-size: 2rem;
+  }
+
+  .pricing-page__subtitle {
+    font-size: 1.1rem;
+  }
+
+  .pricing-cards {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .pricing-page {
+    padding: 1.5rem 1rem;
+  }
+
+  .pricing-page__title {
+    font-size: 1.75rem;
+  }
+
+  .pricing-page__subtitle {
+    font-size: 1rem;
+  }
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pricing-cards {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.pricing-card {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.pricing-card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.pricing-card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.pricing-card:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.pricing-card:nth-child(4) {
+  animation-delay: 0.4s;
+}
